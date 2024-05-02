@@ -117,3 +117,20 @@ class couponserializer(serializers.ModelSerializer):
             "coupon":{"required":True},
             "user":{"required":True}
         }
+
+
+
+class useraddressserializers(serializers.ModelSerializer):
+    class Meta:
+        model=UserAddress
+        fields='__all__'
+        extra_kwargs={
+            "Address_line2":{"read_only":True},
+            "is_default":{"write_only":True}
+        }
+        
+
+class paymentserializers(serializers.ModelSerializer):
+    class Meta:
+        model=Payment
+        fields='__all__'

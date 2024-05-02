@@ -20,3 +20,9 @@ admin.site.register(Category)
 admin.site.register(Rating)
 
 admin.site.register(Coupon)
+
+admin.site.register(UserAddress)
+
+admin.site.register(Payment)
+
+admin.site.register(Order)

@@ -44,5 +44,14 @@ urlpatterns = [
     path('coupon_list/',coupon_list,name='coupon_list'),
     path('coupon_detail/<int:pk>/',coupon_detail,name='coupon_detail'),
 
+    path('address/',address,name='address'),
+    path('address_list/',address_list,name='address_list'),
+    path('address_update/<int:pk>/',address_update,name='address_update'),
+
+    path('order/',order,name='order'),
+
+    path('payment/',payment,name='payment'),
+   
+
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

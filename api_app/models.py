@@ -87,4 +87,30 @@ class Coupon(models.Model):
 
 
 
+class UserAddress(models.Model):
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
+    Address_line1=models.CharField(max_length=100)
+    Address_line2=models.CharField(max_length=100,blank=True,null=True)
+    City=models.CharField(max_length=100)
+    is_default = models.BooleanField(default=False)
+    pincode=models.IntegerField()
+    mobile_no=models.IntegerField()
+
+class Payment(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+
+
+
+
+class Order(models.Model):
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
+    product=models.ManyToManyField(Product)
+    total_amount=models.DecimalField(max_digits=10,decimal_places=2)
+    order_date=models.DateTimeField(auto_now_add=True)
+    shipping_address=models.ForeignKey(UserAddress,on_delete=models.CASCADE)
+    payment=models.ForeignKey(Payment,on_delete=models.CASCADE)
+
+
 

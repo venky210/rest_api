@@ -41,13 +41,7 @@ def login(request):
         if user:
             refresh = RefreshToken.for_user(user)
             return Response({'refresh': str(refresh), 'access': str(refresh.access_token),'message':'User Login Successfully...'}, status=status.HTTP_200_OK)
-        # elif user.dealer:
-        #     refresh = RefreshToken.for_user(user)
-        #     return Response({'refresh': str(refresh), 'access': str(refresh.access_token),'message':'Dealer Login Successfully...','dealer':user.username}, status=status.HTTP_200_OK)
-        # elif user.admin:
-        #     refresh=RefreshToken.for_user(user)
-        #     return Response({'refresh':str(refresh),'access':str(refresh.access_token),'message':'Admin Login Successfully...','Admin':user.username},status=status.HTTP_200_OK)
-        # else:
+       
         return Response({'error': 'Invalid username/email or password.'}, 
                         status=status.HTTP_401_UNAUTHORIZED)
     
@@ -469,19 +463,124 @@ def coupon_list(request):
 @api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def coupon_detail(request, pk):
-    try:
-        coupon = Coupon.objects.get(pk=pk)
-    except Coupon.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.user.dealer:
+        try:
+            coupon = Coupon.objects.get(pk=pk)
+        except Coupon.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if request.method == 'PUT':
+            serializer = couponserializer(coupon, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"data":serializer.data,"message":"Coupon Upadate Successfully..."})
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        elif request.method == 'DELETE':
+            coupon.delete()
+            return Response("Coupon Delete Successfully...",status=status.HTTP_204_NO_CONTENT)
+        
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def address(request):
+    if request.method == 'POST':
+        if request.user.user:
+            serializer = useraddressserializers(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response("User not authorized to create address", status=status.HTTP_403_FORBIDDEN)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def address_list(request):
+    if request.method=='GET':
+        if request.user.user:
+            address=UserAddress.objects.all()
+            serializer=useraddressserializers(address,many=True)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.error)
+        
+@api_view(['PUT','DELETE'])
+@permission_classes([IsAuthenticated])
+def address_update(request,pk):
+    if request.user.user:
+        try:
+            address= UserAddress.objects.get(pk=pk)
+        except UserAddress.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if request.method=='PUT':
+            serializer=useraddressserializers(address,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"data":serializer.data,"message":"Address Update Successfully..."})
+            else:
+                return Response(serializer.errors)
+            
+        elif request.method=='DELETE':
+            address.delete()
+            return Response("Address Delete Successfully...")
+            
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def order(request):
+    if request.method == 'GET':
+        try:
+            cart = Cart.objects.filter(user=request.user)
+        except Cart.DoesNotExist:
+            return Response('Cart does not exist...', status=status.HTTP_404_NOT_FOUND)
+        
+        cart_items_data = []
+        total_amount = 0
+        
+        for cart_item in cart:
+            item_data = {
+                'product_name': cart_item.product.pname,
+                'price': cart_item.product.price,
+                'quantity': cart_item.quantity,
+                'image': cart_item.product.img.url if cart_item.product.img else None,
+                'total_price': cart_item.product.price * cart_item.quantity
+            }
+            total_amount += item_data['total_price']
+            cart_items_data.append(item_data)
+        
+       
+        try:
+            default_address = UserAddress.objects.get(user=request.user, is_default=True)
+            shipping_address_serializer =useraddressserializers(default_address)
+        except UserAddress.DoesNotExist:
+            shipping_address_serializer = None
+        
+        shipping_address_data = shipping_address_serializer.data if shipping_address_serializer else {}
+
+        return Response({"cart_items": cart_items_data, "total_amount": total_amount, "shipping_address": shipping_address_data,"payment":"Continue to Payment..."})
     
-    if request.method == 'PUT':
-        serializer = couponserializer(coupon, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"data":serializer.data,"message":"Coupon Upadate Successfully..."})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'PUT':
+       
+        try:
+            default_address = UserAddress.objects.get(user=request.user, is_default=True)
+        except UserAddress.DoesNotExist:
+            return Response('Default shipping address does not exist', status=status.HTTP_404_NOT_FOUND)
+        
+        address_serializer =useraddressserializers(default_address, data=request.data, partial=True)
+        if address_serializer.is_valid():
+            address_serializer.save()
+            return Response(address_serializer.data, status=status.HTTP_200_OK)
+        return Response(address_serializer.errors, status=status.HTTP_400_BAD_REQUEST,)
 
-    elif request.method == 'DELETE':
-        coupon.delete()
-        return Response("Coupon Delete Successfully...",status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment(request):
+    if request.method=="GET":
+        serializer=Payment.objects.all()
+        return Response({"data":serializer,"message":"Payment List..."})
+
+
+
